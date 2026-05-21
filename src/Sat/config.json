@@ -1,10 +1,10 @@
 {
-	"tempWorkingDir": "C:\\Users\\lance\\Temp\\SSTVPrep",
-	"watchFolder": "C:\\Ham\\MMSSTV\\History",
-	"watchFilter": "*.bmp",
-	"windows": {
-		"PASS": "DevTools",
-		"TRACKER": "Heimdall",
-		"WATERFALL": "Heimdall"
-	}
+    "tempWorkingDir": "C:\\Users\\Lance\\Temp",
+    "watchFolder": "C:\\Ham\\MMSSTV\\History",
+    "watchFilter": "*.bmp",
+    "windows": {
+        "PASS": "Passes",
+        "TRACKER": "Tracker",
+        "WATERFALL": "Receivers"
+    }
 }
