@@ -37,6 +37,30 @@ public static class Win32 {
     public static extern IntPtr GetParent(IntPtr hWnd);
 	[DllImport("user32.dll")]
     public static extern IntPtr GetAncestor(IntPtr hWnd, uint gaFlags);
+	[DllImport("user32.dll")]
+	public static extern bool IsIconic(IntPtr hWnd);
+	[DllImport("user32.dll")]
+	public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+	[DllImport("user32.dll")]
+	public static extern bool SetForegroundWindow(IntPtr hWnd);
+	[DllImport("user32.dll")]
+	public static extern bool PrintWindow(IntPtr hwnd, IntPtr hdcBlt, uint nFlags);
+	[DllImport("user32.dll")]
+	public static extern IntPtr GetWindowDC(IntPtr hWnd);
+	[DllImport("user32.dll")]
+	public static extern int ReleaseDC(IntPtr hWnd, IntPtr hDC);
+	[DllImport("gdi32.dll")]
+	public static extern IntPtr CreateCompatibleDC(IntPtr hdc);
+	[DllImport("gdi32.dll")]
+	public static extern IntPtr CreateCompatibleBitmap(IntPtr hdc, int nWidth, int nHeight);
+	[DllImport("gdi32.dll")]
+	public static extern IntPtr SelectObject(IntPtr hdc, IntPtr hgdiobj);
+	[DllImport("gdi32.dll")]
+	public static extern bool DeleteObject(IntPtr hObject);
+	[DllImport("gdi32.dll")]
+	public static extern bool DeleteDC(IntPtr hdc);
+	[DllImport("gdi32.dll")]
+	public static extern bool BitBlt(IntPtr hdcDest,int nXDest,int nYDest,int nWidth,int nHeight,IntPtr hdcSrc,int nXSrc,int nYSrc,int dwRop);
 }
 "@
 
@@ -105,31 +129,65 @@ public static class Win32 {
 
 		if ($width -le 0 -or $height -le 0) { throw "Window has invalid dimensions ($width x $height)" }
 
-		Add-Type -AssemblyName System.Drawing
-		$bmp = New-Object System.Drawing.Bitmap $width, $height
-		$graphics = [System.Drawing.Graphics]::FromImage($bmp)
+		# If the window is minimized, restore it so PrintWindow can render content.
+		$restored = $false
 		try {
-			$graphics.CopyFromScreen($rect.Left, $rect.Top, 0, 0, [System.Drawing.Size]::new($width, $height), [System.Drawing.CopyPixelOperation]::SourceCopy)
-
-			$ext = [System.IO.Path]::GetExtension($FilePath).TrimStart('.').ToLower()
-			switch ($ext) {
-				'png' { $imgFmt = [System.Drawing.Imaging.ImageFormat]::Png }
-				'bmp' { $imgFmt = [System.Drawing.Imaging.ImageFormat]::Bmp }
-				'gif' { $imgFmt = [System.Drawing.Imaging.ImageFormat]::Gif }
-				'jpg' { $imgFmt = [System.Drawing.Imaging.ImageFormat]::Jpeg }
-				'jpeg' { $imgFmt = [System.Drawing.Imaging.ImageFormat]::Jpeg }
-				default { $imgFmt = [System.Drawing.Imaging.ImageFormat]::Png }
+			if ([Win32]::IsIconic($targetHwnd)) {
+				[Win32]::ShowWindow($targetHwnd, 9) | Out-Null # SW_RESTORE
+				Start-Sleep -Milliseconds 250
+				[Win32]::SetForegroundWindow($targetHwnd) | Out-Null
+				$restored = $true
 			}
-
-			$dir = [System.IO.Path]::GetDirectoryName((Resolve-Path -Path $FilePath -ErrorAction SilentlyContinue))
-			if (-not $dir) { $dir = Get-Location }
-			if (-not (Test-Path -Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
-
-			$bmp.Save($FilePath, $imgFmt)
+		}
+		catch {
+			# ignore restore errors and continue to attempt capture
+		}
+		Add-Type -AssemblyName System.Drawing
+		# Attempt to capture using PrintWindow (works when window is obscured). Fallback to BitBlt.
+		$srccopy = 0x00CC0020
+		$PW_RENDERFULLCONTENT = 0x00000002
+		$img = $null
+		$hWndDC = [Win32]::GetWindowDC($targetHwnd)
+		$memDC = [Win32]::CreateCompatibleDC($hWndDC)
+		$hBitmap = [Win32]::CreateCompatibleBitmap($hWndDC, $width, $height)
+		$oldBmp = [Win32]::SelectObject($memDC, $hBitmap)
+		try {
+			$pwSuccess = [Win32]::PrintWindow($targetHwnd, $memDC, $PW_RENDERFULLCONTENT)
+			if (-not $pwSuccess) {
+				[Win32]::BitBlt($memDC, 0, 0, $width, $height, $hWndDC, 0, 0, $srccopy) | Out-Null
+			}
+			$img = [System.Drawing.Image]::FromHbitmap($hBitmap)
 		}
 		finally {
-			$graphics.Dispose()
-			$bmp.Dispose()
+			if ($oldBmp -ne [IntPtr]::Zero) { [Win32]::SelectObject($memDC, $oldBmp) | Out-Null }
+			if ($hBitmap -ne [IntPtr]::Zero) { [Win32]::DeleteObject($hBitmap) | Out-Null }
+			if ($memDC -ne [IntPtr]::Zero) { [Win32]::DeleteDC($memDC) | Out-Null }
+			if ($hWndDC -ne [IntPtr]::Zero) { [Win32]::ReleaseDC($targetHwnd, $hWndDC) | Out-Null }
+		}
+
+		if ($img -eq $null) { throw "Failed to capture window image via PrintWindow/BitBlt." }
+
+		$ext = [System.IO.Path]::GetExtension($FilePath).TrimStart('.').ToLower()
+		switch ($ext) {
+			'png' { $imgFmt = [System.Drawing.Imaging.ImageFormat]::Png }
+			'bmp' { $imgFmt = [System.Drawing.Imaging.ImageFormat]::Bmp }
+			'gif' { $imgFmt = [System.Drawing.Imaging.ImageFormat]::Gif }
+			'jpg' { $imgFmt = [System.Drawing.Imaging.ImageFormat]::Jpeg }
+			'jpeg' { $imgFmt = [System.Drawing.Imaging.ImageFormat]::Jpeg }
+			default { $imgFmt = [System.Drawing.Imaging.ImageFormat]::Png }
+		}
+
+		$dir = [System.IO.Path]::GetDirectoryName((Resolve-Path -Path $FilePath -ErrorAction SilentlyContinue))
+		if (-not $dir) { $dir = Get-Location }
+		if (-not (Test-Path -Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
+
+		$img.Save($FilePath, $imgFmt)
+		$img.Dispose()
+
+		# If we restored the window earlier, optionally minimize it again to return state
+		if ($restored) {
+			Start-Sleep -Milliseconds 100
+			try { [Win32]::ShowWindow($targetHwnd, 6) | Out-Null } catch { }
 		}
 
 		Write-Output (Get-Item -Path $FilePath).FullName
