@@ -2,8 +2,7 @@ param(
 	[string]$ConfigPath = ".\config.json"
 )
 
-Remove-Module SSTV-Tools -Force -ErrorAction SilentlyContinue
-Import-Module SSTV-Tools\
+Import-Module SSTV-Tools
 
 $config = @{}
 if( (Test-Path $configPath)) {
