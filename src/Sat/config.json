@@ -3,7 +3,7 @@
     "watchFolder": "C:\\Ham\\MMSSTV\\History",
     "watchFilter": "*.bmp",
     "windows": {
-        "PASS": "Passes",
+        "PASS": "SDR Console",
         "TRACKER": "Tracker",
         "WATERFALL": "Receivers"
     }

@@ -5,6 +5,9 @@ function New-Screenshot {
 		[string]$WindowName,
 
 		[Parameter()]
+		[string[]]$Exclude = @(),
+
+		[Parameter()]
 		[switch]$GetParent,
 
 		[Parameter(Position=1)]
@@ -17,7 +20,7 @@ function New-Screenshot {
 
 	Process {
 		
-		$hwnd = Get-WindowHandleByName -WindowName $WindowName
+		$hwnd = Get-WindowHandleByName -WindowName $WindowName -Exclude $Exclude
 
 		if ($hwnd -eq [IntPtr]::Zero) {
 			throw "Window with name '$WindowName' not found."
