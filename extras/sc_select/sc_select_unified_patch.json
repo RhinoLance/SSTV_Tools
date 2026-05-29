@@ -1,0 +1,33 @@
+{
+  "name": "sc_select_audio_devices_100",
+  "version": 1,
+  "description": "Raise input/output device limits from 10 to 100, relocate device name buffers, and patch UI list clamps.",
+  "section": {
+    "name": ".adev",
+    "virtualAddress": "0x0002E000",
+    "virtualSize": "0x00005000",
+    "rawPointer": "0x00007000",
+    "rawSize": "0x00005000",
+    "characteristics": "0xC0000040",
+    "sizeOfImage": "0x00033000"
+  },
+  "patches": [
+    { "offset": "0x1F35", "old": "83F90A", "new": "83F964", "label": "Core input cmp clamp" },
+    { "offset": "0x1F3A", "old": "B90A000000", "new": "B964000000", "label": "Core input mov clamp" },
+    { "offset": "0x1F45", "old": "83F80A", "new": "83F864", "label": "Core output cmp clamp" },
+    { "offset": "0x1F4A", "old": "B80A000000", "new": "B864000000", "label": "Core output mov clamp" },
+
+    { "offset": "0x1E3D", "old": "00B50210", "new": "00E00210", "label": "Input buffer ptr #1" },
+    { "offset": "0x1F88", "old": "00B50210", "new": "00E00210", "label": "Input buffer ptr #2" },
+    { "offset": "0x202D", "old": "00B50210", "new": "00E00210", "label": "Input buffer ptr #3" },
+
+    { "offset": "0x1E5D", "old": "20BA0210", "new": "00080310", "label": "Output buffer ptr #1" },
+    { "offset": "0x1FCC", "old": "20BA0210", "new": "00080310", "label": "Output buffer ptr #2" },
+    { "offset": "0x2044", "old": "20BA0210", "new": "00080310", "label": "Output buffer ptr #3" },
+
+    { "offset": "0x11ED", "old": "0A", "new": "64", "label": "UI input cmp immediate" },
+    { "offset": "0x11F1", "old": "0A", "new": "64", "label": "UI input mov immediate" },
+    { "offset": "0x1251", "old": "0A", "new": "64", "label": "UI output cmp immediate" },
+    { "offset": "0x1255", "old": "0A", "new": "64", "label": "UI output mov immediate" }
+  ]
+}
