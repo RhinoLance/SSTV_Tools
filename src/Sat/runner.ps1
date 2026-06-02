@@ -49,7 +49,7 @@ Write-Host "Processing image: $ImagePath"
 	$pTopXY = 260,435
 	$pBottomXY = ($pTopXY[0]+$sstvSize[0]),($pTopXY[1]+130)
 	$passHeight = $pBottomXY[1] - $pTopXY[1]
-	New-Screenshot -WindowName $windows.PASS  -Exclude "RTL_SDR","RSPdx" -FilePath "$path\sat_path.png"
+	New-Screenshot -WindowName $windows.PASS  -Exclude "RTL","RSPdx" -FilePath "$path\sat_path.png"
  	Resize-ImageCanvas -ImageFile "$path\sat_path.png" -LeftTop $pTopXY -RightBottom $pBottomXY -OutputFile "$path\sat_path_resized.png"
  
 # Tracker image prep
