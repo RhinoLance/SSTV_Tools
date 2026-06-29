@@ -4,6 +4,8 @@ param(
 
 Import-Module SSTV-Tools
 
+& ./Set-WindowPositions.ps1 -ConfigPath $ConfigPath
+
 $config = @{}
 if( (Test-Path $configPath)) {
 	Write-Host "Watcher config loaded from $ConfigPath"

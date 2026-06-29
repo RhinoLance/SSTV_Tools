@@ -2,10 +2,17 @@
 param(
 	[string]$ImagePath = "C:\Ham\MMSSTV\History\latest.jpg",
 	[string]$TempWorkingDir = ([System.IO.Path]::GetTempPath() + "\SSTVPrep"),
-	[string]$ConfigPath = ".\config.json"
+	[string]$ConfigPath = ".\config.json",
+	[switch]$Debug
 )
 
-Import-Module SSTV-Tools
+if( $debug ) {
+	Write-Host "Debug mode enabled"
+	Import-Module ..\PowerShell\Modules\SSTV-Tools
+}
+else{
+	Import-Module SSTV-Tools
+}
 
 $config = @{}
 if( (Test-Path $ConfigPath)) {
@@ -26,12 +33,6 @@ if( -not (Test-Path $path)) {
 	New-Item -Path $path -ItemType Directory -Force | Out-Null
 }
 
-$windows = @{
-	PASS = $config.windows?.PASS ?? "Automatic Schedule"
-	TRACKER = $config.windows?.TRACKER ?? "Tracker"
-	WATERFALL = $config.windows?.WATERFALL ?? "Receivers"
-}
-
 try{
 Write-Host "Processing image: $ImagePath"
 # Prepare the sstv image
@@ -46,21 +47,32 @@ Write-Host "Processing image: $ImagePath"
 	
 # Pass image prep
 	Write-Host "Preparing satellite pass screen capture"
+
+	$window = $config.windows?.pass
+	$excludeList = @()
+	if( $null -ne $window.exclude ) {
+		$excludeList = $window.exclude
+	}
+	
+	Write-Host "Pass window name: $window.name"
+
 	$pTopXY = 260,435
 	$pBottomXY = ($pTopXY[0]+$sstvSize[0]),($pTopXY[1]+130)
 	$passHeight = $pBottomXY[1] - $pTopXY[1]
-	New-Screenshot -WindowName $windows.PASS  -Exclude "RTL","RSPdx" -FilePath "$path\sat_path.png"
+	
+	New-Screenshot -WindowName $window.name  -Exclude $excludeList -FilePath "$path\sat_path.png"
  	Resize-ImageCanvas -ImageFile "$path\sat_path.png" -LeftTop $pTopXY -RightBottom $pBottomXY -OutputFile "$path\sat_path_resized.png"
  
 # Tracker image prep
 	Write-Host "Preparing tracker screen capture"
-	New-Screenshot -WindowName $windows.TRACKER -FilePath "$path\tracker.png"
+
+	New-Screenshot -WindowName $config.windows.tracker.name -FilePath "$path\tracker.png"
 	
 	$imageDetail = Get-ImageInfo -ImagePath "$path\tracker.png"
 	
 	$cropStartXY = 0,27
 	$cropStopXY = ($imageDetail.Width, $imageDetail.Height)
-	$scopRatio = $imageDetail.Width / ($imageDetail.Height - 27)
+	$scopRatio = $imageDetail.Width / ($imageDetail.Height - 27) 	
  	$scaleStartXY = 0,0
  	$scaleStopXY = ($sstvSize[0], [int]($sstvSize[0] / $scopRatio))
  	$trackerHeight = $scaleStopXY[1] - $scaleStartXY[1]
@@ -69,9 +81,16 @@ Write-Host "Processing image: $ImagePath"
 	Resize-ImageCanvas -ImageFile "$path\tracker.png" -LeftTop $cropStartXY -RightBottom $cropStopXY -OutputFile "$path\tracker_resized.png"
 	Resize-ImageCanvas -ImageFile "$path\tracker_resized.png" -LeftTop $scaleStartXY -RightBottom $scaleStopXY -OutputFile "$path\tracker_resized.png" -Scale
 
+	# watermark
+	$wmFontSize = 25
+	$wmXY = 103,53
+	Add-TextOverlay -ImagePath "$path\tracker_resized.png" -Text "VK7TO" -Colour "#44888888" -FontSize $wmFontSize -FontWeight Bold -Position $wmXY -OutputPath "$path\tracker_resized.png"
+
 # Receiver image prep
 	Write-Host "Preparing waterfall screen capture"
-	New-Screenshot -WindowName $windows.WATERFALL -FilePath "$path\waterfall.png"
+
+	$window = $config.windows?.waterfall
+	New-Screenshot -WindowName $window.name -FilePath "$path\waterfall.png"
  		
 	$topOffset = 10;  # Centre + offset to capture the freq bar.
 	$leftOffset = 30;
@@ -124,10 +143,12 @@ Write-Host "Processing image: $ImagePath"
 	Add-TextOverlay -ImagePath "$path\master.png" -Text $date -Colour "#CCC" -FontSize $fontSize -Position @(8,$line1) -OutputPath "$path\written.png"
 	Add-TextOverlay -ImagePath "$path\written.png" -Text $time -Colour "#CCC" -FontSize $fontSize -Position @(8,$line2) -OutputPath "$path\written.png"
 
-	# watermark
-	$wmFontSize = 40
-	$wmXY = 90,465
-	Add-TextOverlay -ImagePath "$path\written.png" -Text "VK7TO" -Colour "#22888888" -FontSize $wmFontSize -FontWeight Bold -Position $wmXY -OutputPath "$path\written.png"
+
+
+	if( $Debug ) {
+		Write-Host "Debug mode enabled, skipping final image move and upload"
+		exit 0
+	}
 
 # all done, move the final image to the original location
 	Write-Host "Moving final image to destination"

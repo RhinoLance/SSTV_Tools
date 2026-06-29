@@ -3,8 +3,51 @@
     "watchFolder": "C:\\Ham\\MMSSTV\\History",
     "watchFilter": "*.bmp",
     "windows": {
-        "PASS": "SDR Console",
-        "TRACKER": "Tracker",
-        "WATERFALL": "Receivers"
+        "sdrConsole": {
+            "name": "RTL SDR Blue",
+            "position": {
+                "top": 678,
+                "left": 1582,
+                "width": 985,
+                "height": 500
+            }
+        },
+        "pass": {
+            "name": "SDR Console",
+            "exclude": ["RTL", "RSPdx"],
+            "position": {
+                "top": 0,
+                "left": 1582,
+                "width": 985,
+                "height": 685
+            }
+        },
+        "tracker": {
+            "name": "Tracker",
+            "position": {
+                "top": 1171,
+                "left": 1930,
+                "width": 628,
+                "height": 221
+            }
+        },
+        "waterfall": {
+            "name": "Receivers",
+            "position": {
+                "top": 825,
+                "left": 1589,
+                "width": 280,
+                "height": 293
+            }
+        },
+        "schedule": {
+            "name": "Automatic Schedule",
+            "position": {
+                "top": 1098,
+                "left": 1590,
+                "width": 280,
+                "height": 293
+            }
+        }
     }
 }
