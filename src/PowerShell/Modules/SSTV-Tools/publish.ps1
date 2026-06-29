@@ -46,7 +46,7 @@ if ($Prerelease) {
     while ($parts.Count -lt 3) { $parts += '0' }
     $parts[2] = ([int]$parts[2] + 1).ToString()
     $newVersion = "$($parts[0]).$($parts[1]).$($parts[2])"
-    Run "Update-ModuleManifest -Path '$($manifest.FullName)' -Version '$newVersion'"
+    Run "Update-PSModuleManifest -Path '$($manifest.FullName)' -ModuleVersion '$newVersion'"
     Write-Host "Bumped version to $newVersion"
 }
 
