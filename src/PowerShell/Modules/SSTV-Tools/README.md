@@ -65,6 +65,30 @@ overlay image.
 #### Returns
 - **String | Int32**: Window title string, or `-1` when a matching window has no title.
 
+## `Get-WindowPos`
+
+#### Parameters
+- **WindowName**: Window title to match (exact first, then partial match).
+- **Exclude**: Optional array of substrings to exclude from matches.
+- **GetParent**: Return the parent/root window when set.
+
+#### Returns
+- **RECT**: An object with `Left`, `Top`, `Right`, and `Bottom` properties describing the window bounds.
+
+## `Set-WindowPos`
+
+#### Parameters
+- **WindowName**: Window title to match (exact first, then partial match).
+- **Exclude**: Optional array of substrings to exclude from matches.
+- **GetParent**: Apply the operation to the parent/root window when set.
+- **X**: New left coordinate for the window.
+- **Y**: New top coordinate for the window.
+- **Width**: New width for the window.
+- **Height**: New height for the window.
+
+#### Returns
+- **Int32**: Returns `0` on success.
+
 ## `New-Screenshot`
 
 #### Parameters
