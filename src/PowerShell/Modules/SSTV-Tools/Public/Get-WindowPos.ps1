@@ -41,7 +41,16 @@ function Get-WindowPos {
 		$rect = New-Object SSTVToolsWin32+RECT
 		[SSTVToolsWin32]::GetWindowRect($targetHwnd, [ref]$rect)
 
-		return $rect
+		$output = New-Object PSObject -Property @{
+			Left   = $rect.Left
+			Top    = $rect.Top
+			Right  = $rect.Right
+			Bottom = $rect.Bottom
+			Width  = $rect.Right - $rect.Left
+			Height = $rect.Bottom - $rect.Top
+		}
+
+		return $output
 	}
 }
 
