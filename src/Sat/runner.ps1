@@ -153,7 +153,9 @@ Write-Host "Processing image: $ImagePath"
 # all done, move the final image to the original location
 	Write-Host "Moving final image to destination"
 	
-	$destName = $utcNow.ToString("yyyyMMdd_HHmmss") + "Z.png"
+	$zuluDate = $utcNow.ToString("yyyyMMddTHHmmss") + "Z"
+	$satName += (Get-WindowTitle -WindowName $config.windows.pass.name -Exclude $config.windows.pass.exclude).Split("::")[0].Trim()
+	$destName = $zuluDate + "_" + $satName + ".png"
 	Move-Item -Path "$path\written.png" -Destination "$path\$destName" -Force
 
 	Write-Host "Final composition was saved to: $path\$destName"
