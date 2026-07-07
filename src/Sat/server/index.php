@@ -1,19 +1,5 @@
 <?php
-// Helper: extract timestamp from filename
-function extractTimestamp($filename)
-{
-	// Expecting: yyyyMMdd_HHmmssZ.png
-	if (preg_match('/(\d{8})_(\d{6})Z/i', $filename, $m)) {
-		$date = $m[1]; // yyyyMMdd
-		$time = $m[2]; // HHmmss
 
-		$formatted = DateTime::createFromFormat('Ymd His', "$date $time", new DateTimeZone('UTC'));
-		if ($formatted) {
-			return $formatted->format('Y-m-d H:i:s') . " UTC";
-		}
-	}
-	return "";
-}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -134,7 +120,7 @@ function extractTimestamp($filename)
 			right: 24px;
 		}
 
-		.timestamp {
+		.timestamp, .satName {
 			margin-top: 8px;
 			font-size: 0.85rem;
 			color: #555;
@@ -144,6 +130,13 @@ function extractTimestamp($filename)
 			text-align: center;
 			color: #777;
 			padding-top: 40px;
+		}
+
+		.img-placeholder {
+			min-width: 180px;
+			min-height: 260px;
+			align-items: center;
+			justify-content: center;
 		}
 	</style>
 </head>
@@ -156,6 +149,7 @@ function extractTimestamp($filename)
 	<div class="gallery">
 		<!-- Thumbnails will be injected here by JavaScript -->
 	</div>
+	<div id="sentinel"></div>
 
 
 	<div class="viewer" id="viewer" aria-hidden="true">
@@ -173,6 +167,28 @@ function extractTimestamp($filename)
 		let currentIndex = -1;
 		let items = [];
 		let pollTimer = null;
+
+		let dataSrcStatus = {
+			index: 0,
+			perPage: 20,
+			totalCount: 0,
+			nextIndex: 0
+		};
+
+		function initInfiniteScroll() {
+			const sentinel = document.querySelector('#sentinel');
+			const observer = new IntersectionObserver(async (entries) => {
+				console.log('sentinel intersected', entries[0].isIntersecting, dataSrcStatus);
+				if (entries[0].isIntersecting) {
+					if (parseInt(dataSrcStatus.index) + parseInt(dataSrcStatus.perPage) >= parseInt(dataSrcStatus.totalCount)) {
+						return;
+					}
+					await pollOnce();
+				}
+			});
+
+			observer.observe(sentinel);
+		}
 
 		function closeViewer() {
 			viewer.classList.remove('is-open');
@@ -202,8 +218,11 @@ function extractTimestamp($filename)
 			}
 			const html = items.map(it => `
             <div class="item">
-                <img src="archive/${escapeHtml(it.file)}" alt="" data-fullsrc="${escapeHtml(it.file)}">
-                <div class="timestamp">${escapeHtml(it.timestamp)}</div>
+                <div class="img-placeholder">
+					<img src="${it.file}" alt="" data-fullsrc="${it.file}" />
+				</div>
+                <div class="timestamp">${it.timestamp}</div>
+				<div class="satName">${it.satName}</div>
             </div>
         `).join('');
 			galleryEl.innerHTML = html;
@@ -239,23 +258,31 @@ function extractTimestamp($filename)
 			});
 		}
 
-		function fetchListAndRender() {
-			fetch('api/list.php').then(r => r.json()).then(data => {
-				// data is [{file,timestamp,mtime},...]
-				renderGallery(data.map(d => ({
-					file: d.file,
-					timestamp: d.timestamp,
-					mtime: d.mtime
-				})));
+		async function fetchList(startIndex = 0) {
+			return await fetch(`api/images.php?index=${startIndex}&pageSize=100`).then(r => r.json()).then(data => {
+				dataSrcStatus = data._metadata;
+				return data.records;
 			}).catch(err => {
 				console.warn('fetch list failed', err);
+				return [];
 			});
 		}
 
-		function startPolling(intervalMs = 5000) {
+		async function startPolling(intervalMs = 5000) {
 			if (pollTimer) return;
-			fetchListAndRender();
-			pollTimer = setInterval(fetchListAndRender, intervalMs);
+			await pollOnce();
+			setTimeout(() => {
+				//initInfiniteScroll();
+			}, 5000);
+
+			pollTimer = setInterval(async () => {
+				pollOnce();
+			}, intervalMs);
+		}
+
+		async function pollOnce() {
+			const data = await fetchList();
+			renderGallery(data);
 		}
 
 		function stopPolling() {
