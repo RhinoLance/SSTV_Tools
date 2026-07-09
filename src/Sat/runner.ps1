@@ -54,8 +54,6 @@ Write-Host "Processing image: $ImagePath"
 		$excludeList = $window.exclude
 	}
 	
-	Write-Host "Pass window name: $window.name"
-
 	$pTopXY = 260,435
 	$pBottomXY = ($pTopXY[0]+$sstvSize[0]),($pTopXY[1]+130)
 	$passHeight = $pBottomXY[1] - $pTopXY[1]
@@ -154,8 +152,10 @@ Write-Host "Processing image: $ImagePath"
 	Write-Host "Moving final image to destination"
 	
 	$zuluDate = $utcNow.ToString("yyyyMMddTHHmmss") + "Z"
-	$satName += (Get-WindowTitle -WindowName $config.windows.pass.name -Exclude $config.windows.pass.exclude).Split("::")[0].Trim()
+	$satName += (Get-WindowTitle -WindowName $config.windows.pass.name -Exclude $config.windows.pass.exclude) -split '[:(]' | Select-Object -First 1
+	$satName = $satName.Trim()
 	$destName = $zuluDate + "_" + $satName + ".png"
+	$destName = Repair-Filename -Name $destName -Replacement "-"
 	Move-Item -Path "$path\written.png" -Destination "$path\$destName" -Force
 
 	Write-Host "Final composition was saved to: $path\$destName"
