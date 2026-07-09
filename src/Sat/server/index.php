@@ -201,7 +201,7 @@
 		function showAtIndex(i) {
 			if (i < 0 || i >= items.length) return;
 			const item = items[i];
-			viewerImage.src = 'archive/' + item.file;
+			viewerImage.src = item.file;
 			viewerImage.alt = item.file || '';
 			currentIndex = i;
 			viewer.classList.add('is-open');
@@ -246,7 +246,7 @@
 			// If items not populated via fetch, build items from DOM thumbnails so clicks work
 			if (!items || items.length === 0) {
 				items = thumbnails.map((t) => ({
-					file: 'archive/' + t.dataset.fullsrc,
+					file: t.dataset.fullsrc,
 					timestamp: (t.closest('.item') && t.closest('.item').querySelector('.timestamp')) ? t.closest('.item').querySelector('.timestamp').textContent : ''
 				}));
 			}
